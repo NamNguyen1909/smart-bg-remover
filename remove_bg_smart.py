@@ -1,16 +1,17 @@
 import os
 import sys
+import argparse
 import numpy as np
 from PIL import Image
 import scipy.ndimage as ndimage
 
-def remove_background(image_path, output_path, tolerance=40, low_tolerance=15):
+def remove_bg_solid(image_path, output_path, tolerance=40, low_tolerance=15):
     print(f"Loading image: {image_path}")
     img = Image.open(image_path).convert("RGBA")
     arr = np.array(img)
     h, w, _ = arr.shape
     
-    # We assume the background color is white or matching the corners.
+    # Detect background color from corners
     corners = [
         arr[0, 0, :3],
         arr[0, w-1, :3],
@@ -47,7 +48,7 @@ def remove_background(image_path, output_path, tolerance=40, low_tolerance=15):
     # Create mask of background
     background_mask = np.isin(labels, list(border_labels))
     
-    # We copy the original alpha channel (which is 255 everywhere initially)
+    # Copy the original alpha channel
     alpha = arr[:, :, 3].copy()
     
     # Calculate soft alpha for anti-aliasing
@@ -58,22 +59,76 @@ def remove_background(image_path, output_path, tolerance=40, low_tolerance=15):
     # For background mask pixels, apply the soft alpha_factor
     alpha[background_mask] = (alpha[background_mask] * alpha_factor[background_mask]).astype(np.uint8)
     
-    # Update the alpha channel in the array
+    # Update the alpha channel
     arr[:, :, 3] = alpha
     
     # Save the output image
     out_img = Image.fromarray(arr)
     out_img.save(output_path, "PNG")
-    print(f"Saved transparent image to: {output_path}")
+    print(f"Saved transparent image (Solid Mode) to: {output_path}")
 
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python remove_bg_smart.py <input_path> <output_path> [tolerance] [low_tolerance]")
+
+def remove_bg_ai(image_path, output_path, model_name="isnet-general"):
+    try:
+        from rembg import remove, new_session
+    except ImportError:
+        print("\n[!] Error: The 'rembg' library is required for AI mode.")
+        print("Please install it using: pip install rembg")
+        print("Note: To run with GPU support, install: pip install rembg[gpu]\n")
         sys.exit(1)
         
-    input_path = sys.argv[1]
-    output_path = sys.argv[2]
-    tol = int(sys.argv[3]) if len(sys.argv) > 3 else 40
-    low_tol = int(sys.argv[4]) if len(sys.argv) > 4 else 15
+    print(f"Loading image for AI processing: {image_path}")
+    img = Image.open(image_path)
     
-    remove_background(input_path, output_path, tol, low_tol)
+    print(f"Initializing AI model '{model_name}' (this may take a few seconds on first run)...")
+    try:
+        session = new_session(model_name)
+        print("Processing background removal using AI...")
+        out_img = remove(img, session=session)
+        out_img.save(output_path, "PNG")
+        print(f"Saved transparent image (AI Mode) to: {output_path}")
+    except Exception as e:
+        print(f"[!] AI Processing failed: {e}")
+        sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Smart Background Remover: Supports precise solid color keying and advanced AI-based segmentation."
+    )
+    parser.add_argument("input", help="Path to input image file")
+    parser.add_argument("output", help="Path to output transparent PNG file")
+    parser.add_argument(
+        "--mode", 
+        choices=["solid", "ai"], 
+        default="solid", 
+        help="Processing mode: 'solid' for solid/logo backgrounds (flood-fill), 'ai' for complex/scenic backgrounds"
+    )
+    parser.add_argument(
+        "--model", 
+        default="isnet-general", 
+        help="AI model to use (only for --mode ai). Examples: isnet-general (best for anime/illustrations), birefnet-general (best for general images), u2net"
+    )
+    parser.add_argument(
+        "--tolerance", 
+        type=int, 
+        default=40, 
+        help="Tolerance threshold for solid background detection (only for --mode solid)"
+    )
+    parser.add_argument(
+        "--low-tolerance", 
+        type=int, 
+        default=15, 
+        help="Lower tolerance limit for soft edge blending (only for --mode solid)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.mode == "solid":
+        remove_bg_solid(args.input, args.output, args.tolerance, args.low_tolerance)
+    elif args.mode == "ai":
+        remove_bg_ai(args.input, args.output, args.model)
+
+
+if __name__ == "__main__":
+    main()
