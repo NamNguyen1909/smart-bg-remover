@@ -12,18 +12,18 @@ A high-precision, offline Python tool designed to remove backgrounds from both l
 ## Visual Demos
 
 ### 1. Solid Mode (`--mode solid`) - Best for Logos & Badges
-*Perfect for flat designs. Preserves delicate details like the circular golden frame without any cutoffs.*
+*Perfect for flat designs. Preserves delicate details like logo borders and typography without any distortion.*
 
-| Input Image (`images/input.jpg`) | Output Image (`images/output.png`) |
+| Input Image (`images/logo-03.cc5e5332.png`) | Output Image (`images/logo_output.png`) |
 | --- | --- |
-| ![Logo Input](images/input.jpg) | ![Logo Output](images/output.png) |
+| ![Logo Input](images/logo-03.cc5e5332.png) | ![Logo Output](images/logo_output.png) |
 
 ### 2. Hybrid Mode (`--mode hybrid`) - Best for Complex Drawings & Anime Hair
 *Handles gradient backgrounds, floating objects, and fine hair details without leaving background color casts or bleeding.*
 
-| Input Image (`images/input_complex.jpg`) | Output Image (`images/output_complex.png`) |
+| Input Image (`images/aot_input.jpg`) | Output Image (`images/aot_hybrid.png`) |
 | --- | --- |
-| ![Anime Input](images/input_complex.jpg) | ![Anime Output](images/output_complex.png) |
+| ![Anime Input](images/aot_input.jpg) | ![Anime Output](images/aot_hybrid.png) |
 
 ---
 
@@ -71,14 +71,14 @@ python remove_bg_smart.py <input_path> <output_path> [options]
 - `--alpha-matting`: Use rembg built-in alpha matting (only in `ai` mode).
 
 ### Examples:
-**Tách nền logo trắng (Solid Mode):**
+**Tách nền logo phẳng (Solid Mode):**
 ```bash
-python remove_bg_smart.py images/input.jpg images/output.png --mode solid
+python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid
 ```
 
 **Tách tranh anime phức tạp (Hybrid Mode - Khuyên dùng cho tóc khó):**
 ```bash
-python remove_bg_smart.py images/input_complex.jpg images/output_complex.png --mode hybrid --model isnet-anime
+python remove_bg_smart.py images/aot_input.jpg images/aot_hybrid.png --mode hybrid --model isnet-anime
 ```
 
 ---
@@ -93,12 +93,12 @@ Công cụ Python chạy offline với độ chính xác cao, hỗ trợ tách n
 3.  **Hybrid Mode (`--mode hybrid`)**: Kết hợp phân tách AI (`isnet-anime`) với **Mặt nạ bảo vệ lõi** (Core Protection Mask) và **Khoảng cách màu**. Đây là chế độ tốt nhất cho tranh anime phức tạp, giúp xóa sạch màu nền bị kẹt giữa các khe tóc nhỏ mà không làm hỏng mắt, da, hay quần áo nhân vật.
 
 ## Lệnh mẫu:
-**Tách logo nền trắng:**
+**Tách logo nền phẳng:**
 ```bash
-python remove_bg_smart.py images/input.jpg images/output.png --mode solid
+python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid
 ```
 
 **Tách hình vẽ anime phức tạp (Chế độ Hybrid - Sạch kẽ tóc):**
 ```bash
-python remove_bg_smart.py images/input_complex.jpg images/output_complex.png --mode hybrid
+python remove_bg_smart.py images/aot_input.jpg images/aot_hybrid.png --mode hybrid
 ```
