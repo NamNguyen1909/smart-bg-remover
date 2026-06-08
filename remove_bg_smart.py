@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import scipy.ndimage as ndimage
 
-def remove_bg_solid(image_path, output_path, tolerance=40, low_tolerance=15):
+def remove_bg_solid(image_path, output_path, tolerance=40, low_tolerance=15, floodfill=True):
     print(f"Loading image: {image_path}")
     img = Image.open(image_path).convert("RGBA")
     arr = np.array(img)
@@ -28,25 +28,29 @@ def remove_bg_solid(image_path, output_path, tolerance=40, low_tolerance=15):
     # Binary mask of similar pixels (using tolerance)
     similar = dist < tolerance
     
-    # Label connected components of background-like pixels
-    labels, num_features = ndimage.label(similar)
-    print(f"Found {num_features} connected components.")
-    
-    # Identify which components touch the borders
-    border_labels = set()
-    border_labels.update(labels[0, :])          # Top edge
-    border_labels.update(labels[-1, :])         # Bottom edge
-    border_labels.update(labels[:, 0])          # Left edge
-    border_labels.update(labels[:, -1])         # Right edge
-    
-    # 0 is the foreground (non-similar pixels), remove it from border labels
-    if 0 in border_labels:
-        border_labels.remove(0)
+    if floodfill:
+        # Label connected components of background-like pixels
+        labels, num_features = ndimage.label(similar)
+        print(f"Found {num_features} connected components.")
         
-    print(f"Border-touching component labels: {border_labels}")
-    
-    # Create mask of background
-    background_mask = np.isin(labels, list(border_labels))
+        # Identify which components touch the borders
+        border_labels = set()
+        border_labels.update(labels[0, :])          # Top edge
+        border_labels.update(labels[-1, :])         # Bottom edge
+        border_labels.update(labels[:, 0])          # Left edge
+        border_labels.update(labels[:, -1])         # Right edge
+        
+        # 0 is the foreground (non-similar pixels), remove it from border labels
+        if 0 in border_labels:
+            border_labels.remove(0)
+            
+        print(f"Border-touching component labels: {border_labels}")
+        
+        # Create mask of background
+        background_mask = np.isin(labels, list(border_labels))
+    else:
+        print("Global color-keying enabled (disabling flood-fill connectivity). All matching pixels will be removed.")
+        background_mask = similar
     
     # Copy the original alpha channel
     alpha = arr[:, :, 3].copy()
@@ -120,7 +124,7 @@ def remove_bg_hybrid(image_path, output_path, model_name="isnet-anime", toleranc
         print(f"[!] AI phase failed: {e}")
         sys.exit(1)
         
-    # 2. Detect the background color dynamically from AI-confirmed background pixels (alpha == 0)
+    # 2. Detect the background color dynamically from AI-background pixels (alpha == 0)
     bg_pixels = arr[ai_alpha == 0, :3]
     if len(bg_pixels) == 0:
         # Fallback to corner pixels if AI mask covers the entire image
@@ -188,6 +192,11 @@ def main():
         help="Lower tolerance limit for soft edge blending (default: 15 for solid, 35 for hybrid)"
     )
     parser.add_argument(
+        "--no-floodfill",
+        action="store_true",
+        help="Disable flood-fill connectivity for --mode solid to remove enclosed background-colored pixels (like inside letters like 'b' or 'o')"
+    )
+    parser.add_argument(
         "--alpha-matting",
         action="store_true",
         help="Use rembg built-in alpha matting for edge/hair refinement (only for --mode ai)"
@@ -215,7 +224,8 @@ def main():
             args.low_tolerance = 35
             
     if args.mode == "solid":
-        remove_bg_solid(args.input, args.output, args.tolerance, args.low_tolerance)
+        # Disable floodfill if --no-floodfill is selected
+        remove_bg_solid(args.input, args.output, args.tolerance, args.low_tolerance, floodfill=not args.no_floodfill)
     elif args.mode == "ai":
         remove_bg_ai(args.input, args.output, args.model, args.alpha_matting, args.post_process_mask)
     elif args.mode == "hybrid":

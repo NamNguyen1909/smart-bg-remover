@@ -12,7 +12,7 @@ A high-precision, offline Python tool designed to remove backgrounds from both l
 ## Visual Demos
 
 ### 1. Solid Mode (`--mode solid`) - Best for Logos & Badges
-*Perfect for flat designs. Preserves delicate details like logo borders and typography without any distortion.*
+*Perfect for flat designs. Use `--no-floodfill` to clean up enclosed white spaces (like inside letters 'b' or 'o').*
 
 | Input Image (`images/logo-03.cc5e5332.png`) | Output Image (`images/logo_output.png`) |
 | --- | --- |
@@ -67,16 +67,17 @@ python remove_bg_smart.py <input_path> <output_path> [options]
   - `birefnet-general`: Best for real photos and objects.
 - `--tolerance TOL`: Color threshold limit for background detection (default: `40` for solid, `75` for hybrid).
 - `--low-tolerance LOW_TOL`: Edge blending lower limit for soft transparency (default: `15` for solid, `35` for hybrid).
+- `--no-floodfill`: Disable flood-fill connectivity for `solid` mode. Use this for flat logos/text containing enclosed spaces (like inside the letter `b` or `o`) to remove all background pixels globally.
 - `--erosion-iterations ITER`: Size of the protection mask (default: `15`, only in `hybrid` mode). Higher values protect more of the inner body.
 - `--alpha-matting`: Use rembg built-in alpha matting (only in `ai` mode).
 
 ### Examples:
-**Tách nền logo phẳng (Solid Mode):**
+**Tách nền logo phẳng có chữ (Solid Mode + No Flood-fill):**
 ```bash
-python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid
+python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid --no-floodfill
 ```
 
-**Tách tranh anime phức tạp (Hybrid Mode - Khuyên dùng cho tóc khó):**
+**Tách tranh anime phức tạp (Hybrid Mode - Khuyên dùng cho kẽ tóc):**
 ```bash
 python remove_bg_smart.py images/aot_input.jpg images/aot_hybrid.png --mode hybrid --model isnet-anime
 ```
@@ -89,13 +90,14 @@ python remove_bg_smart.py images/aot_input.jpg images/aot_hybrid.png --mode hybr
 Công cụ Python chạy offline với độ chính xác cao, hỗ trợ tách nền cho cả logo phẳng đơn sắc và tranh vẽ minh họa phức tạp. Dự án tích hợp ba chế độ hoạt động:
 
 1.  **Solid Mode (`--mode solid`)**: Thuật toán loang vùng (flood-fill) tùy biến. Cực kỳ chính xác cho logo, icon trên nền phẳng (bảo vệ viền tròn ngoài mà AI thường cắt lẹm).
+    *   Sử dụng thêm tham số `--no-floodfill` khi tách các logo có chữ hoặc khoảng trống khép kín (như trong lòng chữ `b` hoặc `o`) để xóa sạch nền ở mọi vị trí.
 2.  **AI Mode (`--mode ai`)**: Sử dụng mạng nơ-ron thông qua thư viện `rembg` cho ảnh chụp và vật thể thông thường.
 3.  **Hybrid Mode (`--mode hybrid`)**: Kết hợp phân tách AI (`isnet-anime`) với **Mặt nạ bảo vệ lõi** (Core Protection Mask) và **Khoảng cách màu**. Đây là chế độ tốt nhất cho tranh anime phức tạp, giúp xóa sạch màu nền bị kẹt giữa các khe tóc nhỏ mà không làm hỏng mắt, da, hay quần áo nhân vật.
 
 ## Lệnh mẫu:
-**Tách logo nền phẳng:**
+**Tách logo nền trắng có khoảng khép kín (như chữ b, o):**
 ```bash
-python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid
+python remove_bg_smart.py images/logo-03.cc5e5332.png images/logo_output.png --mode solid --no-floodfill
 ```
 
 **Tách hình vẽ anime phức tạp (Chế độ Hybrid - Sạch kẽ tóc):**
